@@ -1,0 +1,11 @@
+{
+  "tlb": "C:\\Program Files\\Autodesk\\Robot Structural Analysis Professional 2027\\Exe\\robotom.tlb",
+  "inspections": {
+    "RobotProject": {
+      "coclass": "RobotProject",
+      "clsid": "{6D348834-EFBF-11D1-9783-0080C86BE4DF}",
+      "members": {},
+      "interface": "IRobotProject",
+      "method_names": [
+        [
+          

@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "structcalc-pro"
+version = "0.1.0"
+description = "Orchestrateur d'ingénierie structurelle et d'échanges BIM (Robot, Revit, AutoCAD)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Propriétaire - Usage BET" }
+
+# Dépendances runtime. pywin32 / comtypes sont INDISPENSABLES au pont COM Robot
+# (constat Phase 0 : absents de l'environnement initial).
+dependencies = [
+    "PyQt6>=6.6",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "openpyxl>=3.1",
+    "pywin32>=306 ; sys_platform == 'win32'",
+    "comtypes>=1.2 ; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov>=4"]
+
+[tool.setuptools.packages.find]
+include = ["structcalc*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Les tests d'intégration Robot ouvrent l'UI de Robot : on les sépare des
+# tests unitaires (doubles de test) via le marqueur `robot`.
+markers = [
+    "robot: tests d'intégration nécessitant une instance Robot Structural Analysis",
+]
+addopts = "-m 'not robot'"   # par défaut, n'exécute PAS les tests Robot

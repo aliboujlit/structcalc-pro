@@ -1,0 +1,16 @@
+{
+  "support_labels": [
+    "Rotule"
+  ],
+  "supports_error": "required argument 'lab_name' missing",
+  "bar_load_error": "Records",
+  "results_available": 0,
+  "reaction_node1": {
+    "Fx": 0.0,
+    "Fy": 0.0
+  },
+  "reaction_node2": {
+    "Fx": 0.0,
+    "Fy": 0.0
+  }
+}

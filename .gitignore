@@ -1,0 +1,29 @@
+# --- SORTIES DE BUILD (reproductibles, non versionnées) ---
+dist/
+build/
+*.spec.bak
+
+# --- PYTHON ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+venv/
+.venv/
+
+# --- SORTIES DE TEST / LIVRABLES GENERES ---
+*.log
+build_log.txt
+ErrorReports/
+tools/__pycache__/
+
+# --- SECRETS (jamais commités) ---
+.env
+*.token
+gh_host.yml
+
+# --- DIVERS ---
+Thumbs.db
+.DS_Store

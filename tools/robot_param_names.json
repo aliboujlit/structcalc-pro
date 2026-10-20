@@ -1,0 +1,12 @@
+{
+  "IRobotNodeServer": "<classe absente>",
+  "IRobotBarServer": "<classe absente>",
+  "IRobotCaseServer": "<classe absente>",
+  "IRobotCase": "<classe absente>",
+  "IRobotCaseRecordsServer": "<classe absente>",
+  "IRobotBarForceServer": "<classe absente>",
+  "IRobotNodeReactionServer": "<classe absente>",
+  "IRobotNodeDisplacementServer": "<classe absente>",
+  "IRobotLoadRecord": "<classe absente>",
+  "IRobotLoadRecord2": "<classe absente>"
+}

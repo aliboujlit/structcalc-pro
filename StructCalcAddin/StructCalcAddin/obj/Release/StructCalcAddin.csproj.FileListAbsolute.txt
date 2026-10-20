@@ -1,0 +1,11 @@
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\obj\Release\StructCalcAddin.csproj.AssemblyReference.cache
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\obj\Release\StructCalcAddin.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\obj\Release\StructCalcAddin.csproj.CoreCompileInputs.cache
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\bin\Release\StructCalcAddin.addin
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\bin\Release\StructCalcAddin.deps.json
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\bin\Release\StructCalcAddin.dll
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\bin\Release\StructCalcAddin.pdb
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\obj\Release\StructCalcAddin.dll
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\obj\Release\refint\StructCalcAddin.dll
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\obj\Release\StructCalcAddin.pdb
+C:\Users\Admin\Desktop\geni  civil\structcalc_pro\StructCalcAddin\StructCalcAddin\obj\Release\ref\StructCalcAddin.dll

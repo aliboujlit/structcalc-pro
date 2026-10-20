@@ -1,0 +1,11 @@
+{
+  "case1": {
+    "name": "?",
+    "type": "?"
+  },
+  "signature_success": [
+    "num,name,type,analize",
+    1
+  ],
+  "cases_count": 1
+}

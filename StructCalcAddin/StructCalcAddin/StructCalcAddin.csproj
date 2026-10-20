@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Revit 2027 = .NET 10 -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>StructCalcAddin</AssemblyName>
+    <RootNamespace>StructCalcAddin</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <!-- AssemblyInfo.cs manuel conservé -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <!-- PushButtonData expose des propriétés WPF (ImageSource) : référence nécessaire -->
+    <UseWPF>true</UseWPF>
+    <Deterministic>false</Deterministic>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Platform>AnyCPU</Platform>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Revit API 2027 : compilateur = oracle ; aucune DLL copiée (fournies par Revit au runtime) -->
+    <Reference Include="RevitAPI">
+      <HintPath>C:\Program Files\Autodesk\Revit 2027\RevitAPI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>C:\Program Files\Autodesk\Revit 2027\RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Newtonsoft.Json est chargé par Revit lui-même -->
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>C:\Program Files\Autodesk\Revit 2027\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="StructCalcAddin.addin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

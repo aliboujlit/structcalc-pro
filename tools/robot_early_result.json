@@ -1,0 +1,12 @@
+{
+  "steps": [
+    "Chargement du TypeLib RobotOM (binding anticipé)...",
+    "Module RobotOM chargé : <module 'comtypes.gen.RobotOM' from 'C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python312\\\\Lib\\\\site-packages\\\\comtypes\\\\gen\\\\RobotOM.py'>",
+    "Instanciation Robot.Application (typed dispatch)...",
+    "Robot 40.0.0.12707 connecté",
+    "Project.IsActive avant = 0",
+    "Project.New() — création d'un projet vierge..."
+  ],
+  "success": false,
+  "error": "Traceback (most recent call last):\n  File \"C:\\Users\\Admin\\Desktop\\geni  civil\\structcalc_pro\\tools\\probe_robot_early.py\", line 104, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"C:\\Users\\Admin\\Desktop\\geni  civil\\structcalc_pro\\tools\\probe_robot_early.py\", line 47, in main\n    proj.New()\n  File \"C:\\Users\\Admin\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\comtypes\\client\\lazybind.py\", line 160, in caller\n    return self._comobj._invoke(descr.memid, descr.invkind, 0, *args)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\Admin\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\comtypes\\automation.py\", line 848, in _invoke\n    self.__com_Invoke(  # type: ignore\n_ctypes.COMError: (-2147352562, 'Nombre de paramètres non valide.', (None, None, None, 0, None))\n"
+}

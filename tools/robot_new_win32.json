@@ -1,0 +1,33 @@
+{
+  "program_version": "40.0.0.12707",
+  "is_active_initial": 0,
+  "initial_active_model": {
+    "ok": false,
+    "error": "com_error: (-2147352567, 'Une exception s’est produite.', (0, None, None, None, 0, -2147467261), None)"
+  },
+  "New_0args": {
+    "ok": false,
+    "error": "com_error: (-2147352562, 'Nombre de paramètres non valide.', None, None)"
+  },
+  "New_1arg_0": {
+    "ok": false,
+    "error": "com_error: (-2147352567, 'Une exception s’est produite.', (0, None, None, None, 0, -2147467259), None)"
+  },
+  "New_1arg_1": {
+    "ok": true,
+    "result": "None"
+  },
+  "New_1arg_2": {
+    "ok": true,
+    "result": "None"
+  },
+  "NewFromTemplate_empty": {
+    "ok": true,
+    "result": "None"
+  },
+  "NewFromTemplate_space": {
+    "ok": true,
+    "result": "None"
+  },
+  "is_active_final": -1
+}

@@ -1,0 +1,19 @@
+{
+  "support_labels": [
+    "Rotule"
+  ],
+  "support_error": "The Python instance can not be converted to a COM object",
+  "cases_count": 0,
+  "calc_called": true,
+  "results_available": 0,
+  "reaction_node1": {
+    "Fx": 0.0,
+    "Fy": 0.0,
+    "Fz": 0.0
+  },
+  "reaction_node2": {
+    "Fx": 0.0,
+    "Fy": 0.0,
+    "Fz": 0.0
+  }
+}

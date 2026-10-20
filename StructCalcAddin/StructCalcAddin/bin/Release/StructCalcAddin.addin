@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>STRUCTCALC PRO</Name>
+    <Assembly>StructCalcAddin.dll</Assembly>
+    <AddInId>a1b2c3d4-e5f6-7890-abcd-ef1234567890</AddInId>
+    <FullClassName>StructCalcAddin.StructCalcAddin</FullClassName>
+    <VendorId>STRUCTCALC</VendorId>
+    <VendorDescription>STRUCTCALC PRO - Orchestrateur d'ingénierie structurelle</VendorDescription>
+    <Version>1.0.0</Version>
+    <Description>Add-in Revit pour échange bidirectionnel modèle structural (Named Pipe) avec le noyau Python STRUCTCALC PRO.</Description>
+  </AddIn>
+</RevitAddIns>

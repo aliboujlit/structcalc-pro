@@ -1,0 +1,16 @@
+{
+  "structure_type": "CDispatch",
+  "servers": {
+    "Nodes": "CDispatch",
+    "Bars": "CDispatch",
+    "Cases": "CDispatch",
+    "Combos": "INACCESSIBLE(<unknown>.Combos)",
+    "Materials": "INACCESSIBLE(<unknown>.Materials)",
+    "Sections": "INACCESSIBLE(<unknown>.Sections)",
+    "Labels": "CDispatch",
+    "Selections": "CDispatch",
+    "Results": "CDispatch",
+    "Stories": "INACCESSIBLE(<unknown>.Stories)"
+  },
+  "fatal": "Traceback (most recent call last):\n  File \"C:\\Users\\Admin\\Desktop\\geni  civil\\structcalc_pro\\tools\\probe_structure_real.py\", line 116, in <module>\n    raise SystemExit(main())\n                     ^^^^^^\n  File \"C:\\Users\\Admin\\Desktop\\geni  civil\\structcalc_pro\\tools\\probe_structure_real.py\", line 66, in main\n    print(f\"    Nodes.Count = {nodes.Count}  (attendu 2)\")\n                               ^^^^^^^^^^^\n  File \"C:\\Users\\Admin\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\win32com\\client\\dynamic.py\", line 631, in __getattr__\n    raise AttributeError(f\"{self._username_}.{attr}\")\nAttributeError: <unknown>.Count\n"
+}
