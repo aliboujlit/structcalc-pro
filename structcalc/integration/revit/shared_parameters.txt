@@ -1,0 +1,55 @@
+# STRUCTCALC PRO — Fichier de paramètres partagés Revit (.txt)
+# À charger dans Revit via "Gérer > Paramètres partagés" avant d'utiliser l'add-in.
+# Ce fichier définit les paramètres partagés utilisés par STRUCTCALC pour
+# tracer l'honnêteté (A_VALIDER) et les hypothèses sur les éléments Revit.
+#
+# Format : GUID	Nom	Groupe	Type	Instance	Visible	Description
+# Groupe = "STRUCTCALC" (créé automatiquement)
+# Instance = 1 (paramètre d'instance) / 0 (type)
+# Visible = 1 (visible dans propriétés) / 0 (masqué)
+
+# Groupe STRUCTCALC
+GROUP	STRUCTCALC	STRUCTCALC	STRUCTCALC	0	1	Paramètres STRUCTCALC PRO
+
+# ---- Statut honnêteté (sur CHAQUE élément/armature créé) ----
+PARAM	7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d	SC_Status	STRUCTCALC	1	1	Statut honnêteté : A_VALIDER | GÉNÉRÉ | À_COMPLÉTER | NON_IMPLÉMENTÉ (jamais CONFORME sans validation ingénieur)
+
+# ---- Hypothèses constructives (paramètres d'instance modifiables par l'ingénieur) ----
+PARAM	8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e	SC_Enrobage_mm	STRUCTCALC	1	1	Enrobage béton (mm) — HYPOTHÈSE non lue dans Robot, à saisir/valider par l'ingénieur (défaut 25/40 mm selon exposition)
+
+PARAM	9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f	SC_Recouvrement_mm	STRUCTCALC	1	1	Longueur de recouvrement (mm) — HYPOTHÈSE non lue, à saisir/valider (défaut selon BAEL 91)
+
+PARAM	a0b1c2d3-e4f5-6a7b-8c9d-0e1f2a3b4c5d	SC_Attente_mm	STRUCTCALC	1	1	Longueur d'attente (mm) — HYPOTHÈSE non lue, à saisir/valider
+
+PARAM	b1c2d3e4-f5a6-7b8c-9d0e-1f2a3b4c5d6e	SC_Classe_Acier	STRUCTCALC	1	1	Classe d'acier (ex. HA500) — HYPOTHÈSE non lue dans Robot, à confirmer
+
+PARAM	c2d3e4f5-a6b7-8c9d-0e1f-2a3b4c5d6e7f	SC_Classe_Beton	STRUCTCALC	1	1	Classe de béton (ex. C25/30) — issue du label Robot (BETON25) mais à confirmer
+
+PARAM	d3e4f5a6-b7c8-9d0e-1f2a-3b4c5d6e7f8a	SC_Gamme_Barres	STRUCTCALC	1	1	Gamme de barres utilisée (ex. Ø12-Ø32) — gamme déclarée, pas lue
+
+# ---- Traçabilité source (paramètres d'instance en lecture seule) ----
+PARAM	e4f5a6b7-c8d9-0e1f-2a3b-4c5d6e7f8a9b	SC_Source	STRUCTCALC	1	0	Source de l'élément : Robot | AutoCAD | Calcul_STRUCTCALC
+
+PARAM	f5a6b7c8-d9e0-1f2a-3b4c-5d6e7f8a9b0c	SC_Robot_ID	STRUCTCALC	1	0	Identifiant Robot original (numéro nœud/barre)
+
+PARAM	0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d	SC_SC_ID	STRUCTCALC	1	0	Identifiant STRUCTCALC stable (SC-NODE-*, SC-COL-*, SC-BEAM-*, SC-SEC-*)
+
+# ---- Armatures (sur Rebar) ----
+PARAM	1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e	SC_Rebar_Layer	STRUCTCALC	1	1	Couche armature : Longitudinal | Stirrups | Transversal
+
+PARAM	2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7f	SC_Rebar_Position	STRUCTCALC	1	1	Position le long de l'axe (0..1) — 0.5 = axe, enrobage non fourni
+
+PARAM	3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a	SC_Rebar_Count	STRUCTCALC	1	1	Nombre de barres demandées (Count > 1 non appliqué sans enrobage — voir note)
+
+PARAM	4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7f8a9b	SC_Rebar_Status	STRUCTCALC	1	1	Statut armature : A_VALIDER (proposition) | GÉNÉRÉE (confirmée par ingénieur)
+
+# ---- Nomenclature / Quantités (paramètres de type sur FamilySymbol) ----
+PARAM	5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c	SC_Quantite_Longueur_m	STRUCTCALC	0	1	Longueur totale acier (m) pour nomenclature
+
+PARAM	6a7b8c9d-0e1f-2a3b-4c5d-6e7f8a9b0c1d	SC_Quantite_Masse_kg	STRUCTCALC	0	1	Masse acier (kg) ρ=7850 kg/m³ pour nomenclature
+
+# ---- Notes / Avertissements (texte multiligne) ----
+PARAM	7b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e	SC_Note_Honnetete	STRUCTCALC	1	1	Note d'honnêteté : "Proposition A_VALIDER — enrobage/recouvrement/attentes non lues — validation ingénieur REQUISE avant exécution"
+
+# Fin du fichier
+EOF
