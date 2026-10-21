@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from .base import (
     AutodeskConnector, Capability, CapabilityReport, CapabilityStatus,
@@ -26,7 +26,7 @@ from ...integration.revit.protocol import (
     RevitPipeClient, RevitPipeError, RevitProtocolError, PipeEnvelope,
 )
 from ...integration.revit.writer import (
-    write_model_to_revit, WriteReport,
+    write_model_to_revit, WriteReport, export_nomenclature_to_revit,
 )
 from ...integration.revit.families import FamiliesMap
 
@@ -65,10 +65,11 @@ class RevitConnector(AutodeskConnector):
     name = "revit"
     label = "Autodesk Revit (via Named Pipe add-in)"
 
-    def __init__(self, families_map_path: str = ""):
+    def __init__(self, families_map_path: str = "", pipe_name: str = ""):
         self._client: Optional[RevitPipeClient] = None
         self._state = RevitConnectionState()
         self._families_map_path = families_map_path
+        self._pipe_name = pipe_name or r"\\.\pipe\structcalc_revit"
         self._reinforcement_plans: Dict[str, Any] = {}
 
     # ------------------------------------------------------------------
@@ -82,7 +83,40 @@ class RevitConnector(AutodeskConnector):
         detail = ""
         transport = "named_pipe"
 
-        # 1. Détecter processus Revit.exe
+        # 1. Détecter installation Revit (registre) - même si pas lancé
+        try:
+            import winreg
+            # Chercher dans les clés de désinstallation
+            for root in (r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+                         r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"):
+                try:
+                    uk = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, root)
+                    i = 0
+                    while True:
+                        try:
+                            sub = winreg.EnumKey(uk, i)
+                        except OSError:
+                            break
+                        i += 1
+                        try:
+                            sk = winreg.OpenKey(uk, sub)
+                            disp = winreg.QueryValueEx(sk, "DisplayName")[0]
+                            sk.Close()
+                        except (OSError, FileNotFoundError):
+                            continue
+                        if isinstance(disp, str) and "Revit" in disp:
+                            installed = True
+                            for w in disp.split():
+                                if w.isdigit() and len(w) == 4:
+                                    version = w
+                            break
+                    uk.Close()
+                except OSError:
+                    pass
+        except ImportError:
+            pass
+
+        # 2. Détecter processus Revit.exe en cours (pour version précise)
         try:
             import subprocess
             out = subprocess.run(
@@ -148,17 +182,17 @@ class RevitConnector(AutodeskConnector):
                 "Détection processus Revit + sonde pipe réalisée."),
             Capability.CONNECT: CapabilityReport(
                 Capability.CONNECT,
-                CapabilityStatus.SUPPORTED if pipe_ok else CapabilityStatus.NOT_IMPLEMENTED,
+                CapabilityStatus.SUPPORTED if pipe_ok else CapabilityStatus.NOT_SUPPORTED,
                 "Connexion Named Pipe \\\\.\\pipe\\structcalc_revit"
                 + (" OK" if pipe_ok else " (Revit/add-in non prêt)")),
             Capability.READ_MODEL: CapabilityReport(
                 Capability.READ_MODEL,
-                CapabilityStatus.SUPPORTED if pipe_ok else CapabilityStatus.NOT_IMPLEMENTED,
+                CapabilityStatus.SUPPORTED if pipe_ok else CapabilityStatus.NOT_SUPPORTED,
                 "READ_MODEL via pipe -> StructuralModelDto (nœuds, barres, sections, matériaux, cas de charge)"
                 + ("" if pipe_ok else " (add-in non prêt)")),
             Capability.WRITE_MODEL: CapabilityReport(
                 Capability.WRITE_MODEL,
-                CapabilityStatus.PARTIAL if pipe_ok else CapabilityStatus.NOT_IMPLEMENTED,
+                CapabilityStatus.PARTIAL if pipe_ok else CapabilityStatus.NOT_SUPPORTED,
                 "APPLY_CHANGES via pipe : sections (FamilySymbol) + armatures (Rebar). "
                 "LIMITES : appuis non écrits (conditions aux limites Revit exigent hôte+référence), "
                 "enrobages/recouvrements NON fournis -> barres à l'AXE, positionnement à ajuster."
@@ -189,7 +223,7 @@ class RevitConnector(AutodeskConnector):
         if self.connected:
             return self
         try:
-            self._client = RevitPipeClient()
+            self._client = RevitPipeClient(pipe_name=self._pipe_name)
             self._client.connect()
             self._state.pipe_connected = True
             # Ping pour valider
@@ -212,6 +246,22 @@ class RevitConnector(AutodeskConnector):
         self._client = None
         self._state.pipe_connected = False
 
+    def probe_addin(self) -> Tuple[bool, str]:
+        """
+        Sonde l'add-in Revit sans établir de connexion persistante.
+        Retourne (True, "ok") si l'add-in répond au PING, (False, motif) sinon.
+        """
+        try:
+            client = RevitPipeClient(pipe_name=self._pipe_name)
+            client.connect(retries=3, delay=0.5)
+            ping = client.ping()
+            client.close()
+            if ping.get("pipe") == "structcalc_revit":
+                return True, "add-in vivant (PING OK)"
+            return False, "pipe détecté mais réponse inattendue"
+        except Exception as exc:
+            return False, f"add-in inaccessible : {exc}"
+
     # ------------------------------------------------------------------
     # Ponts vers/depuis le pivot
     # ------------------------------------------------------------------
@@ -223,7 +273,8 @@ class RevitConnector(AutodeskConnector):
         matériaux, cas de charge, appuis.
         """
         if not self.connected:
-            return self._refuse(Capability.READ_MODEL)
+            return OpReport("read_model", "NOT_IMPLEMENTED", source=self.name,
+                            message="REFUSÉE : Non connecté (connect() requis).")
 
         try:
             data = self._client.read_model()
@@ -255,7 +306,8 @@ class RevitConnector(AutodeskConnector):
           - Armatures (Rebar) via plans de ferraillage (ReinforcementPlan)
         """
         if not self.connected:
-            return self._refuse(Capability.WRITE_MODEL)
+            return OpReport("write_model", "NOT_IMPLEMENTED", source=self.name,
+                            message="REFUSÉE : Non connecté (connect() requis).")
 
         if not self._families_map_path:
             return OpReport(
@@ -293,6 +345,36 @@ class RevitConnector(AutodeskConnector):
         except Exception as exc:
             return OpReport("write_model", "ERROR", source=self.name,
                             message=f"Écriture Revit : {exc}")
+
+    # ------------------------------------------------------------------
+    # CREATE_SCHEDULE : planning nomenclatures
+    # ------------------------------------------------------------------
+    def create_schedule(self, schedule_data: Dict[str, Any]) -> OpReport:
+        """
+        Crée un planning (Schedule/Quantities) Revit avec les données de nomenclature.
+
+        Nécessite que les éléments/armatures existent déjà avec paramètres partagés SC_*.
+        """
+        if not self.connected:
+            return self._refuse(Capability.WRITE_DRAWINGS)
+
+        try:
+            result = self._client.create_schedule(schedule_data)
+            return OpReport(
+                "create_schedule",
+                "OK" if result.get("success") else "ERROR",
+                source=self.name,
+                message=result.get("message", "Planning créé"),
+            )
+        except RevitPipeError as exc:
+            return OpReport("create_schedule", "ERROR", source=self.name,
+                            message=f"Pipe Revit : {exc}")
+        except RevitProtocolError as exc:
+            return OpReport("create_schedule", "ERROR", source=self.name,
+                            message=f"Protocole Revit : {exc}")
+        except Exception as exc:
+            return OpReport("create_schedule", "ERROR", source=self.name,
+                            message=f"Création planning : {exc}")
 
     # ------------------------------------------------------------------
     # API spécifique armatures (pour plans ferraillage)

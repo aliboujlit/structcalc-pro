@@ -300,11 +300,6 @@ def _section_dto(fmap: FamilyMapEntry) -> Dict[str, Any]:
     return dto
 
 
-def _rebar_dtos_from_plan(plan: Any) -> List[Dict[str, Any]]:
-    """Wrapper pour compatibilité."""
-    return _rebar_dtos_from_plan(plan)
-
-
 # ---------------------------------------------------------------------------
 # Rapport d'écriture
 # ---------------------------------------------------------------------------
@@ -316,6 +311,7 @@ class WriteReport:
     elements_updated: int = 0
     rebars_created: int = 0
     sections_applied: int = 0
+    bars_processed: int = 0
     skipped: Dict[str, int] = field(default_factory=dict)
     notes: List[str] = field(default_factory=list)
     errors: List[str] = field(default_factory=list)
@@ -390,6 +386,7 @@ def write_model_to_revit(
         report.elements_updated = result.get("elementsUpdated", 0)
         report.rebars_created = result.get("rebarsCreated", 0)
         report.sections_applied = result.get("sectionsApplied", 0)
+        report.bars_processed = len(bar_changes)
         report.notes.extend(result.get("notes", []))
 
         report.add_note(

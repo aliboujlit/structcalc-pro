@@ -162,13 +162,14 @@ def test_build_apply_changes_request_with_mapping():
         sections={
             "C R30x30": FamilyMapEntry(
                 family="Poteau_Rectangulaire", type_name="30x30",
-                width_m=0.30, height_m=0.30),
+                width_m=0.30, height_m=0.30, element_type="column"),
         },
     )
     request = build_apply_changes_request(p, fmap)
     assert "barChanges" in request
-    # 4 poteaux + 1 poutre (B0) utilisent la section "C R30x30" mappée
-    assert len(request["barChanges"]) == 5
+    # Seuls les 4 poteaux (element_type="column") utilisent la section "C R30x30" mappée
+    # La poutre B0 utilise la même section mais element_type="column" ne correspond pas à "beam"
+    assert len(request["barChanges"]) == 4
     for bc in request["barChanges"]:
         assert bc["newSectionName"] == "30x30"
         assert "width" in bc["newSection"]
@@ -239,7 +240,7 @@ def test_write_model_to_revit_fake_pipe():
             {"pipe": "structcalc_revit", "listening": True, "clients": 1}, "ping1"))
         # Réponse APPLY_CHANGES
         fake_server.set_response("APPLY_CHANGES", PipeEnvelope.ok(
-            {"barsUpdated": 4, "nodesProcessed": 0, "rebarsCreated": 8,
+            {"barsUpdated": 4, "sectionsApplied": 4, "nodesProcessed": 0, "rebarsCreated": 8,
              "notes": ["4 barres modifiées", "8 armatures créées"]}, "apply1"))
 
         client = _FakeRevitPipeClient(fake_server)
@@ -256,7 +257,7 @@ def test_write_model_to_revit_fake_pipe():
         report = write_model_to_revit(p, str(fmap_path), reinforcement_plans=plans, pipe_client=client)
 
         assert report.ok is True
-        assert report.bars_processed == 5  # 4 poteaux + 1 poutre (même section mappée)
+        assert report.bars_processed == 4  # 4 poteaux (element_type="column")
         assert report.sections_applied == 4
         assert report.rebars_created == 8
 

@@ -4,7 +4,7 @@ integration/revit/protocol.py — Client Named Pipe NDJSON vers l'add-in Revit.
 
 Protocole (contrat strict, DTO C# côté add-in) :
   - Enveloppe : {success: bool, data: any, error: string, request_id: string}
-  - Transport : NDJSON (une ligne JSON par message) sur \\.\pipe\structcalc_revit
+  - Transport : NDJSON (une ligne JSON par message) sur \\\\.\\pipe\\structcalc_revit
   - Commandes : PING, READ_MODEL, APPLY_CHANGES
   - Unités : MÈTRES (Python) -> PIEDS (Revit, conversion côté add-in)
   - Aucune exception silencieuse : tout échec = message d'erreur explicite.
@@ -218,6 +218,28 @@ class RevitPipeClient:
           }
         """
         return self._request("APPLY_CHANGES", changes)
+
+    def create_schedule(self, schedule_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Crée un planning (Schedule) Revit avec les données de nomenclature.
+
+        `schedule_data` = dict conforme à ScheduleData :
+          {
+            "scheduleName": "STRUCTCALC_Nomenclature_Acier",
+            "totalMassKg": 1234.5,
+            "rows": [
+              {
+                "Repere": "P32-10",
+                "Type": "Barre longitudinale",
+                "Diametre_mm": 32,
+                "Nombre": 10,
+                "Longueur_m": 3.60,
+                "Masse_kg": 227.3
+              }
+            ]
+          }
+        """
+        return self._request("CREATE_SCHEDULE", schedule_data)
 
 
 # ---------------------------------------------------------------------------

@@ -141,8 +141,27 @@ namespace StructCalcAddin.Models
     // ========== Commandes d'écriture (Python -> Revit) ==========
     public class ApplyChangesRequest
     {
+        public List<ElementCreationDto> ElementCreations { get; set; } = new List<ElementCreationDto>();
         public List<BarChangeDto> BarChanges { get; set; } = new List<BarChangeDto>();
         public List<NodeChangeDto> NodeChanges { get; set; } = new List<NodeChangeDto>();
+    }
+
+    public class ElementCreationDto
+    {
+        public string ElementType { get; set; }           // "column" | "beam" | "footing_isolated" | "footing_strip"
+        public string FamilyName { get; set; }
+        public string TypeName { get; set; }
+        public SectionDto Section { get; set; }
+        public LocationDto Location { get; set; }
+        public string ScId { get; set; }
+        public Dictionary<string, string> SharedParams { get; set; } = new Dictionary<string, string>();
+    }
+
+    public class LocationDto
+    {
+        public XyzDto Start { get; set; }      // pour column/beam
+        public XyzDto End { get; set; }
+        public XyzDto Point { get; set; }      // pour footing
     }
 
     public class BarChangeDto
@@ -165,7 +184,39 @@ namespace StructCalcAddin.Models
         public int DiameterMm { get; set; }
         public int Count { get; set; }
         public double? Position { get; set; } // 0..1 le long de la barre
-        public string Layer { get; set; }     // "Top", "Bottom", "Side"
+        public string Layer { get; set; }     // "Longitudinal" | "Stirrups"
+
+        // NOUVEAUX (depuis Python writer v1.5)
+        public List<string> Hooks { get; set; } = new List<string>();
+        public List<CurveDto> Curves { get; set; } = new List<CurveDto>();
+        public StirrupSpacingDto StirrupSpacing { get; set; }
+        public Dictionary<string, string> SharedParams { get; set; } = new Dictionary<string, string>();
+    }
+
+    public class StirrupSpacingDto
+    {
+        public double Zone { get; set; }        // mm
+        public double Field { get; set; }       // mm
+        public double AttenteLength { get; set; } // mm
+    }
+
+    public class CurveDto
+    {
+        public XyzDto Start { get; set; }
+        public XyzDto End { get; set; }
+        public bool IsArc { get; set; }
+        public XyzDto Center { get; set; }      // si arc
+    }
+
+    public class ElementCreationDto
+    {
+        public string ElementType { get; set; }           // "column" | "beam" | "footing_isolated" | "footing_strip"
+        public string FamilyName { get; set; }
+        public string TypeName { get; set; }
+        public SectionDto Section { get; set; }
+        public LocationDto Location { get; set; }
+        public string ScId { get; set; }
+        public Dictionary<string, string> SharedParams { get; set; } = new Dictionary<string, string>();
     }
 
     // ========== Résultat d'application ==========
@@ -174,6 +225,7 @@ namespace StructCalcAddin.Models
         public int BarsUpdated { get; set; }
         public int NodesProcessed { get; set; }
         public int RebarsCreated { get; set; }
+        public int ElementsCreated { get; set; }
         public List<string> Notes { get; set; } = new List<string>();
     }
 

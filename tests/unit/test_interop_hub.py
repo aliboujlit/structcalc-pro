@@ -278,7 +278,7 @@ def test_real_connectors_detect_without_launching():
                 RevitConnector):
         det = cls().detect()
         assert det.name
-        assert det.transport in ("com", "dotnet", "none")
+        assert det.transport in ("com", "dotnet", "named_pipe", "none")
         # installed n'implique JAMAIS automatable (§19)
         if not det.automatable:
             assert det.transport != "com"

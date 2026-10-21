@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using StructCalcAddin.Models;
+using StructCalcAddin.Commands;
 
 namespace StructCalcAddin.Server
 {
@@ -199,13 +200,29 @@ namespace StructCalcAddin.Server
                         if (OnWriteModel != null) return OnWriteModel(msg.Payload, requestId);
                         return PipeEnvelope.Fail("WRITE_MODEL non câblé côté add-in (dispatcher absent)", requestId);
 
+                    case "CREATE_SCHEDULE":
+                        // Payload JSON pour ScheduleCreator.CreateScheduleFromJson
+                        if (msg.Payload != null)
+                        {
+                            try
+                            {
+                                return ScheduleCreator.CreateScheduleFromJson(
+                                    _uiApp?.ActiveUIDocument?.Document, msg.Payload, requestId);
+                            }
+                            catch (Exception ex)
+                            {
+                                return PipeEnvelope.Fail($"CREATE_SCHEDULE: {ex.Message}", requestId);
+                            }
+                        }
+                        return PipeEnvelope.Fail("CREATE_SCHEDULE: payload manquant", requestId);
+
                     case "GET_ELEMENTS":
                         return PipeEnvelope.Fail(
                             "GET_ELEMENTS non implémenté côté add-in : utilisez READ_MODEL (modèle complet)", requestId);
 
                     default:
                         return PipeEnvelope.Fail(
-                            $"Commande inconnue: {msg.Command} (implémentées: PING, READ_MODEL, APPLY_CHANGES, WRITE_MODEL)",
+                            $"Commande inconnue: {msg.Command} (implémentées: PING, READ_MODEL, APPLY_CHANGES, WRITE_MODEL, CREATE_SCHEDULE)",
                             requestId);
                 }
             }
