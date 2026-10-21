@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Autodesk.Revit.DB;
 using Newtonsoft.Json;
@@ -6,17 +6,12 @@ using Newtonsoft.Json.Serialization;
 
 namespace StructCalcAddin.Models
 {
-    /// <summary>
-    /// Unités du protocole (contrat avec le noyau Python) :
-    ///   longueurs en mètres, aires en m², inerties en m⁴, diamètres d'armature en mm.
-    /// Revit travaille en pieds (unité interne) : conversions via <see cref="Units"/>.
-    /// </summary>
     public static class XchgUnits
     {
         public const double FtToM = 0.3048;
         public const double MToFt = 1.0 / 0.3048;
-        public const double Ft2ToM2 = 0.09290304;      // 0.3048^2
-        public const double Ft4ToM4 = 0.008630974;     // 0.3048^4
+        public const double Ft2ToM2 = 0.09290304;
+        public const double Ft4ToM4 = 0.008630974;
         public const double FtToMm = 304.8;
         public const double MmToFt = 1.0 / 304.8;
 
@@ -26,38 +21,30 @@ namespace StructCalcAddin.Models
         public static double? Ft4ToMeters4(double? v) => v.HasValue ? v.Value * Ft4ToM4 : (double?)null;
     }
 
-    // ========== Géométrie (mètres) ==========
     public class XyzDto
     {
         public double X { get; set; }
         public double Y { get; set; }
         public double Z { get; set; }
 
-        /// <summary>Depuis un point Revit (pieds) -> mètres.</summary>
         public static XyzDto FromXyzFeet(XYZ p) =>
             p == null ? null : new XyzDto { X = p.X * XchgUnits.FtToM, Y = p.Y * XchgUnits.FtToM, Z = p.Z * XchgUnits.FtToM };
 
-        /// <summary>Vers un point Revit (pieds) depuis des mètres.</summary>
         public XYZ ToXyzFeet() => new XYZ(X * XchgUnits.MToFt, Y * XchgUnits.MToFt, Z * XchgUnits.MToFt);
     }
 
-    // ========== Éléments structuraux ==========
     public class NodeDto
     {
         public long Id { get; set; }
         public XyzDto Position { get; set; }
         public string Name { get; set; }
-        /// <summary>null = inconnu (jamais false silencieux).</summary>
         public bool? IsSupport { get; set; }
-        /// <summary>null = appui détecté mais fixités indéterminables (jamais inventées).</summary>
         public SupportDto Support { get; set; }
     }
 
     public class SupportDto
     {
-        /// <summary>Preset Revit : Fixed / Pinned / Roller / User.</summary>
         public string Preset { get; set; }
-        /// <summary>null = non déterminable (paramètre absent).</summary>
         public bool? FixedX { get; set; }
         public bool? FixedY { get; set; }
         public bool? FixedZ { get; set; }
@@ -72,7 +59,6 @@ namespace StructCalcAddin.Models
         public long StartNodeId { get; set; }
         public long EndNodeId { get; set; }
         public string Name { get; set; }
-        /// <summary>StructuralType Revit : "Beam" | "Column" | autre.</summary>
         public string StructuralType { get; set; }
         public SectionDto Section { get; set; }
         public MaterialDto Material { get; set; }
@@ -82,29 +68,25 @@ namespace StructCalcAddin.Models
     public class SectionDto
     {
         public string Name { get; set; }
-        /// <summary>"Rectangular" | "Circular" | null (inconnue, jamais devinée).</summary>
         public string Shape { get; set; }
-        public double? Width { get; set; }      // m
-        public double? Height { get; set; }     // m
-        public double? Diameter { get; set; }   // m (si circulaire)
-        public double? Area { get; set; }       // m²
-        public double? Iy { get; set; }         // m⁴
-        public double? Iz { get; set; }         // m⁴
-        public double? J { get; set; }          // m⁴ (torsion)
+        public double? Width { get; set; }
+        public double? Height { get; set; }
+        public double? Diameter { get; set; }
+        public double? Area { get; set; }
+        public double? Iy { get; set; }
+        public double? Iz { get; set; }
+        public double? J { get; set; }
     }
 
     public class MaterialDto
     {
         public string Name { get; set; }
-        /// <summary>StructuralMaterialType / MaterialClass Revit ("Concrete", "Steel"...).</summary>
         public string Type { get; set; }
-        // null = non extrait : Revit 2027 n'expose AUCUNE API vérifiée de propriété
-        // physique de matériau (GetMaterialPropertyByName inexistant) — jamais de 0-présenté-comme-donnée.
-        public double? Fc { get; set; }       // Pa (béton)
-        public double? Fy { get; set; }       // Pa (acier)
-        public double? E { get; set; }        // Pa
-        public double? Nu { get; set; }       // Poisson
-        public double? Rho { get; set; }      // kg/m³
+        public double? Fc { get; set; }
+        public double? Fy { get; set; }
+        public double? E { get; set; }
+        public double? Nu { get; set; }
+        public double? Rho { get; set; }
     }
 
     public class LoadDto
@@ -117,7 +99,6 @@ namespace StructCalcAddin.Models
         public string LoadCase { get; set; }
     }
 
-    // ========== Modèle complet ==========
     public class StructuralModelDto
     {
         public string ProjectName { get; set; }
@@ -126,19 +107,16 @@ namespace StructCalcAddin.Models
         public List<NodeDto> Nodes { get; set; } = new List<NodeDto>();
         public List<BarDto> Bars { get; set; } = new List<BarDto>();
         public List<LoadCaseDto> LoadCases { get; set; } = new List<LoadCaseDto>();
-        /// <summary>Limites explicites de l'extraction (jamais de couverture silencieuse).</summary>
         public List<string> Notes { get; set; } = new List<string>();
     }
 
     public class LoadCaseDto
     {
         public string Name { get; set; }
-        /// <summary>Nature du cas de charge (LoadNature) : "Dead", "Live"... si résoluble.</summary>
         public string Type { get; set; }
         public int? Number { get; set; }
     }
 
-    // ========== Commandes d'écriture (Python -> Revit) ==========
     public class ApplyChangesRequest
     {
         public List<ElementCreationDto> ElementCreations { get; set; } = new List<ElementCreationDto>();
@@ -148,7 +126,7 @@ namespace StructCalcAddin.Models
 
     public class ElementCreationDto
     {
-        public string ElementType { get; set; }           // "column" | "beam" | "footing_isolated" | "footing_strip"
+        public string ElementType { get; set; }
         public string FamilyName { get; set; }
         public string TypeName { get; set; }
         public SectionDto Section { get; set; }
@@ -159,9 +137,9 @@ namespace StructCalcAddin.Models
 
     public class LocationDto
     {
-        public XyzDto Start { get; set; }      // pour column/beam
+        public XyzDto Start { get; set; }
         public XyzDto End { get; set; }
-        public XyzDto Point { get; set; }      // pour footing
+        public XyzDto Point { get; set; }
     }
 
     public class BarChangeDto
@@ -183,10 +161,8 @@ namespace StructCalcAddin.Models
         public long BarId { get; set; }
         public int DiameterMm { get; set; }
         public int Count { get; set; }
-        public double? Position { get; set; } // 0..1 le long de la barre
-        public string Layer { get; set; }     // "Longitudinal" | "Stirrups"
-
-        // NOUVEAUX (depuis Python writer v1.5)
+        public double? Position { get; set; }
+        public string Layer { get; set; }
         public List<string> Hooks { get; set; } = new List<string>();
         public List<CurveDto> Curves { get; set; } = new List<CurveDto>();
         public StirrupSpacingDto StirrupSpacing { get; set; }
@@ -195,9 +171,9 @@ namespace StructCalcAddin.Models
 
     public class StirrupSpacingDto
     {
-        public double Zone { get; set; }        // mm
-        public double Field { get; set; }       // mm
-        public double AttenteLength { get; set; } // mm
+        public double Zone { get; set; }
+        public double Field { get; set; }
+        public double AttenteLength { get; set; }
     }
 
     public class CurveDto
@@ -205,21 +181,9 @@ namespace StructCalcAddin.Models
         public XyzDto Start { get; set; }
         public XyzDto End { get; set; }
         public bool IsArc { get; set; }
-        public XyzDto Center { get; set; }      // si arc
+        public XyzDto Center { get; set; }
     }
 
-    public class ElementCreationDto
-    {
-        public string ElementType { get; set; }           // "column" | "beam" | "footing_isolated" | "footing_strip"
-        public string FamilyName { get; set; }
-        public string TypeName { get; set; }
-        public SectionDto Section { get; set; }
-        public LocationDto Location { get; set; }
-        public string ScId { get; set; }
-        public Dictionary<string, string> SharedParams { get; set; } = new Dictionary<string, string>();
-    }
-
-    // ========== Résultat d'application ==========
     public class ApplyResultDto
     {
         public int BarsUpdated { get; set; }
@@ -229,34 +193,32 @@ namespace StructCalcAddin.Models
         public List<string> Notes { get; set; } = new List<string>();
     }
 
-    // ========== Enveloppe du protocole (exactement 4 clés, contrat Python strict) ==========
     public class PipeEnvelope
     {
-        [JsonProperty("success")] public bool Success { get; set; }
-        [JsonProperty("data")] public object Data { get; set; }
-        [JsonProperty("error")] public string Error { get; set; }
-        [JsonProperty("request_id")] public string RequestId { get; set; }
+        [Newtonsoft.Json.JsonProperty("success")] public bool Success { get; set; }
+        [Newtonsoft.Json.JsonProperty("data")] public object Data { get; set; }
+        [Newtonsoft.Json.JsonProperty("error")] public string Error { get; set; }
+        [Newtonsoft.Json.JsonProperty("request_id")] public string RequestId { get; set; }
 
         public static string Ok(object data, string requestId) =>
-            JsonConvert.SerializeObject(new PipeEnvelope { Success = true, Data = data, Error = "", RequestId = requestId ?? "" }, DtoJson.Settings);
+            Newtonsoft.Json.JsonConvert.SerializeObject(new PipeEnvelope { Success = true, Data = data, Error = "", RequestId = requestId ?? "" }, DtoJson.Settings);
 
         public static string Fail(string error, string requestId) =>
-            JsonConvert.SerializeObject(new PipeEnvelope { Success = false, Data = null, Error = error ?? "", RequestId = requestId ?? "" }, DtoJson.Settings);
+            Newtonsoft.Json.JsonConvert.SerializeObject(new PipeEnvelope { Success = false, Data = null, Error = error ?? "", RequestId = requestId ?? "" }, DtoJson.Settings);
     }
 
-    // ========== Helpers de sérialisation (camelCase pour les DTO) ==========
     public static class DtoJson
     {
-        public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
+        public static readonly Newtonsoft.Json.JsonSerializerSettings Settings = new Newtonsoft.Json.JsonSerializerSettings
         {
-            ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            NullValueHandling = NullValueHandling.Ignore,
-            Formatting = Formatting.None,
-            ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-            MissingMemberHandling = MissingMemberHandling.Ignore
+            ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver(),
+            NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore,
+            Formatting = Newtonsoft.Json.Formatting.None,
+            ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore,
+            MissingMemberHandling = Newtonsoft.Json.MissingMemberHandling.Ignore
         };
 
-        public static string Serialize(object obj) => JsonConvert.SerializeObject(obj, Settings);
-        public static T Deserialize<T>(string json) => JsonConvert.DeserializeObject<T>(json, Settings);
+        public static string Serialize(object obj) => Newtonsoft.Json.JsonConvert.SerializeObject(obj, Settings);
+        public static T Deserialize<T>(string json) => Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json, Settings);
     }
 }

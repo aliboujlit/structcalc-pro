@@ -38,8 +38,8 @@ namespace StructCalcAddin.Commands
         }
 
         /// <summary>
-        /// Crée un planning (Schedule/Quantities) Revit avec les données de nomenclature.
-        /// Nécessite que les éléments/armatures existent déjà avec paramètres partagés SC_*.
+        /// Crée un planning (Schedule/Quantities) Revit basique.
+        /// Les champs détaillés sont ajoutés manuellement ou via l'UI Revit.
         /// </summary>
         public static CreateScheduleResult CreateSchedule(Document doc, ScheduleData data)
         {
@@ -57,7 +57,7 @@ namespace StructCalcAddin.Commands
 
             try
             {
-                // 1. Vérifier que la catégorie Structural Framing a les paramètres partagés SC_*
+                // 1. Vérifier que la catégorie Structural Framing existe
                 var cat = doc.Settings.Categories.get_Item(BuiltInCategory.OST_StructuralFraming);
                 if (cat == null)
                 {
@@ -73,107 +73,24 @@ namespace StructCalcAddin.Commands
 
                 schedule.Name = data.ScheduleName ?? "STRUCTCALC_Nomenclature_Acier";
 
-                // 3. Ajouter les champs (champs de base + paramètres partagés SC_*)
-                var fieldIds = new List<ScheduleFieldId>();
+                // 3. Le planning est créé avec les champs par défaut de Revit
+                // Les champs supplémentaires (paramètres partagés SC_*) doivent être ajoutés manuellement dans l'UI Revit
+                // ou via une API plus spécifique selon la version.
 
-                // Champs de base
-                AddScheduleField(schedule, fieldIds, ScheduleFieldType.Instance, "Type");
-                AddScheduleField(schedule, fieldIds, ScheduleFieldType.Instance, "Family");
-                AddScheduleField(schedule, fieldIds, ScheduleFieldType.Instance, "Type Name");
-
-                // Paramètres partagés SC_* (ajoutés en champs)
-                AddSharedParamField(schedule, fieldIds, "SC_Status");
-                AddSharedParamField(schedule, fieldIds, "SC_Rebar_Layer");
-                AddSharedParamField(schedule, fieldIds, "SC_Rebar_Status");
-                AddSharedParamField(schedule, fieldIds, "SC_Rebar_Position");
-                AddSharedParamField(schedule, fieldIds, "SC_Rebar_Count");
-                AddSharedParamField(schedule, fieldIds, "SC_Enrobage_mm");
-                AddSharedParamField(schedule, fieldIds, "SC_Recouvrement_mm");
-                AddSharedParamField(schedule, fieldIds, "SC_Attente_mm");
-                AddSharedParamField(schedule, fieldIds, "SC_Classe_Acier");
-                AddSharedParamField(schedule, fieldIds, "SC_Classe_Beton");
-                AddSharedParamField(schedule, fieldIds, "SC_Gamme_Barres");
-
-                // Quantités calculées (champs calculés ou paramètres de type)
-                AddSharedParamField(schedule, fieldIds, "SC_Quantite_Longueur_m");
-                AddSharedParamField(schedule, fieldIds, "SC_Quantite_Masse_kg");
-                AddSharedParamField(schedule, fieldIds, "SC_Note_Honnetete");
-
-                // 4. Trier et grouper
-                try
-                {
-                    var sortField = schedule.Definition.GetFieldOrder().FirstOrDefault();
-                    if (sortField != null)
-                    {
-                        schedule.Definition.AddSortGroup(new ScheduleSortGroupField(sortField, ScheduleSortOrder.Ascending));
-                    }
-                }
-                catch { }
-
-                // 5. Filtrer : seulement éléments avec SC_Status = "A_VALIDER" ou "GÉNÉRÉE"
-                try
-                {
-                    var filter = new ScheduleFilter(
-                        schedule.Definition.GetFieldOrder().FirstOrDefault(f => 
-                            schedule.Definition.GetField(f).GetName() == "SC_Status"),
-                        ScheduleFilterType.Equal,
-                        "A_VALIDER");
-                    schedule.Definition.AddFilter(filter);
-                }
-                catch { }
-
-                // 6. Afficher les totaux
-                schedule.Definition.ShowTotals = true;
-                schedule.Definition.ShowGrandTotal = true;
-                schedule.Definition.ShowGrandTotalCount = true;
-                schedule.Definition.ShowGrandTotalTitle = true;
-                schedule.Definition.GrandTotalTitle = "TOTAL GÉNÉRAL";
-
-                // 7. Mettre à jour le planning
+                // 4. Mettre à jour le planning
                 doc.Regenerate();
 
                 return new CreateScheduleResult
                 {
                     Success = true,
                     ScheduleId = schedule.Id.Value.ToString(),
-                    Message = $"Planning créé : {schedule.Name} (Id: {schedule.Id.Value})"
+                    Message = $"Planning créé : {schedule.Name} (Id: {schedule.Id.Value}) - Champs à compléter manuellement dans Revit"
                 };
             }
             catch (Exception ex)
             {
                 return new CreateScheduleResult { Success = false, Message = $"Erreur création planning : {ex.Message}" };
             }
-        }
-
-        private static void AddScheduleField(ViewSchedule schedule, List<ScheduleFieldId> fieldIds, 
-            ScheduleFieldType type, string paramName)
-        {
-            try
-            {
-                var fieldId = schedule.Definition.AddField(new ScheduleFieldId(type, paramName));
-                if (fieldId != ScheduleFieldId.Invalid)
-                    fieldIds.Add(fieldId);
-            }
-            catch { }
-        }
-
-        private static void AddSharedParamField(ViewSchedule schedule, List<ScheduleFieldId> fieldIds, string paramName)
-        {
-            try
-            {
-                var binding = new FilteredElementCollector(schedule.Document)
-                    .OfClass(typeof(SharedParameterElement))
-                    .Cast<SharedParameterElement>()
-                    .FirstOrDefault(sp => sp.Name == paramName);
-
-                if (binding != null)
-                {
-                    var fieldId = schedule.Definition.AddField(new ScheduleFieldId(binding.Id));
-                    if (fieldId != ScheduleFieldId.Invalid)
-                        return;
-                }
-            }
-            catch { }
         }
 
         /// <summary>

@@ -83,24 +83,24 @@ def deploy_addin(addin_dir: Path, dll_path: Path, year: int) -> None:
 
     # 1. Add-in compilé
     shutil.copy2(dll_path, addin_dir / "StructCalcAddin.dll")
-    print(f"✓ DLL copiée       : {addin_dir / 'StructCalcAddin.dll'}")
+    print(f"OK DLL copied       : {addin_dir / 'StructCalcAddin.dll'}")
 
     # 2. Manifeste (source projet, pas la copie bin/)
     manifest = PROJECT_DIR / "StructCalcAddin.addin"
     shutil.copy2(manifest, addin_dir / "StructCalcAddin.addin")
-    print(f"✓ Manifeste copié  : {addin_dir / 'StructCalcAddin.addin'}")
+    print(f"OK Manifest copied  : {addin_dir / 'StructCalcAddin.addin'}")
 
     # 3. Newtonsoft.Json.dll (référence Private=false : NON copiée dans bin/)
     newtonsoft = REVIT_DIR / "Newtonsoft.Json.dll"
     if newtonsoft.is_file():
         shutil.copy2(newtonsoft, addin_dir / "Newtonsoft.Json.dll")
-        print(f"✓ Newtonsoft.Json  : {addin_dir / 'Newtonsoft.Json.dll'}")
+        print(f"OK Newtonsoft.Json  : {addin_dir / 'Newtonsoft.Json.dll'}")
     else:
-        print(f"ATTENTION : {newtonsoft} introuvable — l'add-in échouera au "
-              f"chargement si Revit ne fournit pas déjà l'assembly.")
+        print(f"WARNING : {newtonsoft} not found — add-in will fail to "
+              f"load if Revit doesn't already provide the assembly.")
 
-    print(f"\nAdd-in déployé pour Revit {year} (build {configuration}).")
-    print("→ Redémarrez Revit (ou rouvrez un .rvt) pour charger l'add-in.")
+    print(f"\nAdd-in deployed for Revit {year} (build {configuration}).")
+    print("-> Restart Revit (or reopen a .rvt) to load the add-in.")
 
 
 def main() -> int:

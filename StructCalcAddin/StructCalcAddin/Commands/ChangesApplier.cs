@@ -42,20 +42,18 @@ namespace StructCalcAddin.Commands
                         CreateFamilyInstance(doc, creation, result);
                     }
 
-                    var barChanges = changes?.BarChanges ?? new List<BarChangeDto>();
                     foreach (var change in barChanges)
                     {
                         ApplyBarChange(doc, change, result);
                     }
 
-                    var nodeChanges = changes?.NodeChanges ?? new List<NodeChangeDto>();
                     if (nodeChanges.Count > 0)
                     {
                         result.NodesProcessed = 0;
                         result.Notes.Add(
-                            $"{nodeChanges.Count} changement(s) de n\u00E9ud/appui NON appliqu\u00E9(s) : " +
-                            "l\u0027\u00E9criture des conditions aux limites exige un h\u00F4te et une r\u00E9f\u00E9rence exacts " +
-                            "que le pivot ne fournit pas \u2014 aucune \u00E9criture \u00E0 l\u0027aveugle.");
+                            $"{nodeChanges.Count} changement(s) de nœud/appui NON appliqué(s) : " +
+                            "l'écriture des conditions aux limites exige un hôte et une référence exacts " +
+                            "que le pivot ne fournit pas — aucune écriture à l'aveugle.");
                     }
 
                     tx.Commit();
@@ -74,10 +72,10 @@ namespace StructCalcAddin.Commands
         {
             if (creation == null) return;
 
-            var familySymbol = FindOrCreateFamilySymbol(doc, creation.FamilyName, creation.TypeName, creation.Section, result);
+            var familySymbol = FindOrCreateFamilySymbol(doc, creation.TypeName, creation.Section, result);
             if (familySymbol == null)
             {
-                result.Notes.Add($"Cr\u00E9ation {creation.ScId} : FamilySymbol \u0027{creation.FamilyName} : {creation.TypeName}\u0027 introuvable/cr\u00E9ation impossible \u2014 ignor\u00E9.");
+                result.Notes.Add($"Création {creation.ScId} : FamilySymbol '{creation.FamilyName} : {creation.TypeName}' introuvable/création impossible — ignoré.");
                 return;
             }
 
@@ -85,45 +83,52 @@ namespace StructCalcAddin.Commands
 
             try
             {
+                var level = GetDefaultLevel(doc);
+                if (level == null)
+                {
+                    result.Notes.Add($"Création {creation.ScId} : aucun Level trouvé dans le document.");
+                    return;
+                }
+
                 if (creation.ElementType == "column")
                 {
                     if (creation.Location?.Start == null || creation.Location?.End == null)
                     {
-                        result.Notes.Add($"Cr\u00E9ation {creation.ScId} : Location Start/End manquante pour colonne.");
+                        result.Notes.Add($"Création {creation.ScId} : Location Start/End manquante pour colonne.");
                         return;
                     }
                     var curve = Line.CreateBound(
                         creation.Location.Start.ToXyzFeet(),
                         creation.Location.End.ToXyzFeet()
                     );
-                    instance = doc.Create.NewFamilyInstance(curve, familySymbol, StructuralType.Column);
+                    instance = doc.Create.NewFamilyInstance(curve, familySymbol, level, StructuralType.Column);
                 }
                 else if (creation.ElementType == "beam")
                 {
                     if (creation.Location?.Start == null || creation.Location?.End == null)
                     {
-                        result.Notes.Add($"Cr\u00E9ation {creation.ScId} : Location Start/End manquante pour poutre.");
+                        result.Notes.Add($"Création {creation.ScId} : Location Start/End manquante pour poutre.");
                         return;
                     }
                     var curve = Line.CreateBound(
                         creation.Location.Start.ToXyzFeet(),
                         creation.Location.End.ToXyzFeet()
                     );
-                    instance = doc.Create.NewFamilyInstance(curve, familySymbol, StructuralType.Beam);
+                    instance = doc.Create.NewFamilyInstance(curve, familySymbol, level, StructuralType.Beam);
                 }
                 else if (creation.ElementType == "footing_isolated" || creation.ElementType == "footing_strip")
                 {
                     if (creation.Location?.Point == null)
                     {
-                        result.Notes.Add($"Cr\u00E9ation {creation.ScId} : Location Point manquante pour semelle.");
+                        result.Notes.Add($"Création {creation.ScId} : Location Point manquante pour semelle.");
                         return;
                     }
                     var point = creation.Location.Point.ToXyzFeet();
-                    instance = doc.Create.NewFamilyInstance(point, familySymbol, StructuralType.Footing);
+                    instance = doc.Create.NewFamilyInstance(point, familySymbol, level, StructuralType.Footing);
                 }
                 else
                 {
-                    result.Notes.Add($"Type d\u0027\u00E9l\u00E9ment inconnu : {creation.ElementType} \u2014 ignor\u00E9.");
+                    result.Notes.Add($"Type d'élément inconnu : {creation.ElementType} — ignoré.");
                     return;
                 }
 
@@ -131,13 +136,22 @@ namespace StructCalcAddin.Commands
                 {
                     ApplySharedParams(instance, creation.SharedParams);
                     result.ElementsCreated++;
-                    result.Notes.Add($"Cr\u00E9\u00E9 {creation.ElementType} {creation.ScId} (Type: {instance.Symbol.Name}) -> ElementId {instance.Id.Value}");
+                    result.Notes.Add($"Créé {creation.ElementType} {creation.ScId} (Type: {instance.Symbol.Name}) -> ElementId {instance.Id.Value}");
                 }
             }
             catch (Exception ex)
             {
-                result.Notes.Add($"\u00C9chec cr\u00E9ation {creation.ScId} ({creation.ElementType}) : {ex.Message}");
+                result.Notes.Add($"Échec création {creation.ScId} ({creation.ElementType}) : {ex.Message}");
             }
+        }
+
+        private static Level GetDefaultLevel(Document doc)
+        {
+            return new FilteredElementCollector(doc)
+                .OfClass(typeof(Level))
+                .Cast<Level>()
+                .OrderBy(l => l.Elevation)
+                .FirstOrDefault();
         }
 
         private static void ApplySharedParams(Element elem, Dictionary<string, string> sharedParams)
@@ -169,7 +183,7 @@ namespace StructCalcAddin.Commands
             var elem = doc.GetElement(new ElementId(change.ElementId)) as FamilyInstance;
             if (elem == null)
             {
-                result.Notes.Add($"Él\u00E9ment Revit {change.ElementId} introuvable (supprim\u00E9 ou non de cadre) \u2014 ignor\u00E9.");
+                result.Notes.Add($"Élément Revit {change.ElementId} introuvable (supprimé ou non de cadre) — ignoré.");
                 return;
             }
 
@@ -192,7 +206,7 @@ namespace StructCalcAddin.Commands
                 }
                 else if (newType != null)
                 {
-                    result.Notes.Add($"Él\u00E9ment {change.ElementId} d\u00E9j\u00E0 sur le type \u0027{typeName}\u0027 \u2014 inchang\u00E9.");
+                    result.Notes.Add($"Élément {change.ElementId} déjà sur le type '{typeName}' — inchangé.");
                 }
             }
 
@@ -208,10 +222,10 @@ namespace StructCalcAddin.Commands
         {
             if (rb == null || rb.DiameterMm <= 0) return 0;
 
-            var lc = beam.Location as LocationCurve;
-            if (lc?.Curve == null)
+            var locCurve = beam.Location as LocationCurve;
+            if (locCurve?.Curve == null)
             {
-                result.Notes.Add($"Él\u00E9ment {beam.Id.Value} sans courbe \u2014 armature Ø{rb.DiameterMm} non cr\u00E9\u00E9e.");
+                result.Notes.Add($"Élément {beam.Id.Value} sans courbe — armature Ø{rb.DiameterMm} non créée.");
                 return 0;
             }
 
@@ -225,7 +239,7 @@ namespace StructCalcAddin.Commands
             {
                 barType = RebarBarType.Create(doc);
                 result.Notes.Add(
-                    $"Aucun type d\u0027armature Ø{rb.DiameterMm} mm dans le document \u2014 type par d\u00E9faut utilis\u00E9 (v\u00E9rifier sa taille).");
+                    $"Aucun type d'armature Ø{rb.DiameterMm} mm dans le document — type par défaut utilisé (vérifier sa taille).");
             }
 
             List<Curve> curves = new List<Curve>();
@@ -248,54 +262,37 @@ namespace StructCalcAddin.Commands
                     }
                     catch (Exception ex)
                     {
-                        result.Notes.Add($"Courbe armature Ø{rb.DiameterMm} ignor\u00E9e : {ex.Message}");
+                        result.Notes.Add($"Courbe armature Ø{rb.DiameterMm} ignorée : {ex.Message}");
                     }
                 }
             }
             else
             {
-                var lc = beam.Location as LocationCurve;
-                if (lc?.Curve != null)
+                if (locCurve?.Curve != null)
                 {
-                    var start = lc.Curve.GetEndPoint(0);
-                    var end = lc.Curve.GetEndPoint(1);
+                    var start = locCurve.Curve.GetEndPoint(0);
+                    var end = locCurve.Curve.GetEndPoint(1);
                     curves.Add(Line.CreateBound(start, end));
                 }
             }
 
             if (curves.Count == 0)
             {
-                result.Notes.Add($"Armature Ø{rb.DiameterMm} : aucune courbe valide \u2014 ignor\u00E9e.");
+                result.Notes.Add($"Armature Ø{rb.DiameterMm} : aucune courbe valide — ignorée.");
                 return 0;
             }
 
-            List<RebarHookData> hooksData = new List<RebarHookData>();
-            if (rb.Hooks != null && rb.Hooks.Count > 0)
-            {
-                foreach (var hookType in rb.Hooks)
-                {
-                    if (hookType == "Standard" || hookType == "90deg" || string.IsNullOrEmpty(hookType))
-                        hooksData.Add(new RebarHookData(RebarHookType.Standard, 0));
-                    else if (hookType == "90deg" || hookType == "NinetyDegrees")
-                        hooksData.Add(new RebarHookData(RebarHookType.NinetyDegrees, 0));
-                    else if (hookType == "135deg")
-                        hooksData.Add(new RebarHookData(RebarHookType.OneThirtyFiveDegrees, 0));
-                    else if (hookType == "180deg")
-                        hooksData.Add(new RebarHookData(RebarHookType.OneEightyDegrees, 0));
-                }
-            }
-
-            Curve firstCurve = curves[0];
-            var curveDir = (firstCurve.GetEndPoint(1) - firstCurve.GetEndPoint(0)).Normalize();
-            var normal = Math.Abs(curveDir.DotProduct(XYZ.BasisZ)) > 0.9 ? XYZ.BasisY : XYZ.BasisZ;
-
             if (rb.StirrupSpacing != null && rb.Layer == "Stirrups")
             {
-                result.Notes.Add($"StirrupSpacing d\u00E9tect\u00E9 (Zone={rb.StirrupSpacing.Zone}mm, Field={rb.StirrupSpacing.Field}mm, Attente={rb.StirrupSpacing.AttenteLength}mm) \u2014 r\u00E9partition multiple non impl\u00E9ment\u00E9e, un seul cadre cr\u00E9\u00E9.");
+                result.Notes.Add($"StirrupSpacing détecté (Zone={rb.StirrupSpacing.Zone}mm, Field={rb.StirrupSpacing.Field}mm, Attente={rb.StirrupSpacing.AttenteLength}mm) — répartition multiple non implémentée, un seul cadre créé.");
             }
 
             try
             {
+                Curve firstCurve = curves[0];
+                var curveDir = (firstCurve.GetEndPoint(1) - firstCurve.GetEndPoint(0)).Normalize();
+                var normal = Math.Abs(curveDir.DotProduct(XYZ.BasisZ)) > 0.9 ? XYZ.BasisY : XYZ.BasisZ;
+
                 var rebar = Rebar.CreateFromCurves(
                     doc,
                     RebarStyle.Standard,
@@ -309,33 +306,8 @@ namespace StructCalcAddin.Commands
 
                 if (rebar == null)
                 {
-                    result.Notes.Add($"Cr\u00E9ation d\u0027armature Ø{rb.DiameterMm} refus\u00E9e par Revit (h\u00F4te ou g\u00E9om\u00E9trie) \u2014 ignor\u00E9e.");
+                    result.Notes.Add($"Création d'armature Ø{rb.DiameterMm} refusée par Revit (hôte ou géométrie) — ignorée.");
                     return 0;
-                }
-
-                if (rb.Hooks != null && rb.Hooks.Count > 0)
-                {
-                    var hooksData = new List<RebarHookData>();
-                    foreach (var hookType in rb.Hooks)
-                    {
-                        if (hookType == "Standard" || hookType == "90deg" || string.IsNullOrEmpty(hookType))
-                            hooksData.Add(new RebarHookData(RebarHookType.Standard, 0));
-                        else if (hookType == "90deg" || hookType == "NinetyDegrees")
-                            hooksData.Add(new RebarHookData(RebarHookType.NinetyDegrees, 0));
-                        else if (hookType == "135deg")
-                            hooksData.Add(new RebarHookData(RebarHookType.OneThirtyFiveDegrees, 0));
-                        else if (hookType == "180deg")
-                            hooksData.Add(new RebarHookData(RebarHookType.OneEightyDegrees, 0));
-                    }
-
-                    try
-                    {
-                        for (int i = 0; i < hooksData.Count && i < 2; i++)
-                        {
-                            rebar.SetHookTypeId(i, hooksData[i].HookTypeId);
-                        }
-                    }
-                    catch { }
                 }
 
                 if (rb.SharedParams != null && rb.SharedParams.Count > 0)
@@ -361,16 +333,16 @@ namespace StructCalcAddin.Commands
 
                 if (rb.Count > 1)
                     result.Notes.Add(
-                        $"Armature Ø{rb.DiameterMm} cr\u00E9\u00E9e en 1 barre (Count={rb.Count} non appliqu\u00E9 : " +
-                        "r\u00E9partition lat\u00E9rale impossible sans enrobage \u2014 donn\u00E9e manquante).");
+                        $"Armature Ø{rb.DiameterMm} créée en 1 barre (Count={rb.Count} non appliqué : " +
+                        "répartition latérale impossible sans enrobage — donnée manquante).");
                 result.Notes.Add(
-                    $"Armature Ø{rb.DiameterMm} plac\u00E9e \u00E0 l\u0027AXE de la poutre : enrobage non fourni \u2014 positionnement transversal \u00E0 ajuster manuellement.");
+                    $"Armature Ø{rb.DiameterMm} placée à l'AXE de la poutre : enrobage non fourni — positionnement transversal à ajuster manuellement.");
 
                 return 1;
             }
             catch (Exception ex)
             {
-                result.Notes.Add($"Armature Ø{rb.DiameterMm} : \u00E9chec Rebar.CreateFromCurves ({ex.Message}).");
+                result.Notes.Add($"Armature Ø{rb.DiameterMm} : échec Rebar.CreateFromCurves ({ex.Message}).");
                 return 0;
             }
         }
@@ -404,17 +376,17 @@ namespace StructCalcAddin.Commands
             var source = framingSymbols.FirstOrDefault();
             if (source == null)
             {
-                result.Notes.Add($"Aucun type de poutre disponible pour cr\u00E9er \u0027{name}\u0027 \u2014 section non appliqu\u00E9e.");
+                result.Notes.Add($"Aucun type de poutre disponible pour créer '{name}' — section non appliquée.");
                 return null;
             }
 
             var created = source.Duplicate(name) as FamilySymbol;
             if (created == null)
             {
-                result.Notes.Add($"Duplication du type \u0027{name}\u0027 \u00E9chou\u00E9e \u2014 section non appliqu\u00E9e.");
+                result.Notes.Add($"Duplication du type '{name}' échouée — section non appliquée.");
                 return null;
             }
-            result.Notes.Add($"Type \u0027{name}\u0027 cr\u00E9\u00E9 par duplication de \u0027{source.Name}\u0027.");
+            result.Notes.Add($"Type '{name}' créé par duplication de '{source.Name}'.");
             ApplySectionParams(created, section, result);
             return created;
         }
@@ -431,7 +403,7 @@ namespace StructCalcAddin.Commands
 
             if (!any && (section.Width.HasValue || section.Height.HasValue || section.Diameter.HasValue))
                 result.Notes.Add(
-                    $"Type \u0027{symbol.Name}\u0027 : aucun param\u00E8tre de dimension modifiable (b/Width/h/Height/Diameter) \u2014 dimensions non appliqu\u00E9es.");
+                    $"Type '{symbol.Name}' : aucun paramètre de dimension modifiable (b/Width/h/Height/Diameter) — dimensions non appliquées.");
         }
 
         private static bool TrySetLength(Element elem, double? valueMeters, params string[] names)

@@ -86,7 +86,7 @@ def main() -> int:
     rc = rconn.rc
     if rc.is_project_open:
         print("  Projet déjà ouvert, adoption...")
-        rconn.adopt_live_project()
+        rc.adopt_live_project()
     else:
         rc.open_project(str(RTD_VILLA))
         print(f"  Villa ouverte : {RTD_VILLA.name}")

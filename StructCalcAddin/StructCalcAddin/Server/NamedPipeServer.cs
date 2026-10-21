@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Autodesk.Revit.UI;
 using StructCalcAddin.Models;
 using StructCalcAddin.Commands;
 
@@ -13,12 +14,12 @@ namespace StructCalcAddin.Server
 {
     /// <summary>
     /// Serveur Named Pipe (mode OCTET, NDJSON) pour Python <-> Revit.
-
+    ///
     /// Protocole : chaque message est une ligne JSON UTF-8 terminée par "\n".
     /// TOUTE réponse est une enveloppe à EXACTEMENT 4 clés :
     ///   {"success": bool, "data": object|null, "error": string, "request_id": string}
     /// (contrat strict côté Python : ApiResponse(**reponse)).
-
+    ///
     /// Commandes : PING (répondu inline, sans contexte Revit),
     /// READ_MODEL / APPLY_CHANGES / WRITE_MODEL (déléguées au RevitApiDispatcher),
     /// GET_ELEMENTS et toute autre commande : refus explicite motivé.
@@ -31,6 +32,7 @@ namespace StructCalcAddin.Server
         private readonly object _lock = new object();
         private readonly HashSet<NamedPipeServerStream> _instances = new HashSet<NamedPipeServerStream>();
         private int _clientCount;
+        private Autodesk.Revit.UI.UIApplication _uiApp;
 
         // Callbacks : (payload, requestId) -> enveloppe JSON complète
         public Func<string, string, string> OnReadModel { get; set; }
@@ -46,6 +48,12 @@ namespace StructCalcAddin.Server
         public NamedPipeServer(string pipeName = "structcalc_revit")
         {
             _pipeName = pipeName;
+        }
+
+        /// <summary>Définit l'UIApplication pour accéder au document actif.</summary>
+        public void SetUIApplication(UIApplication uiApp)
+        {
+            _uiApp = uiApp;
         }
 
         public void Start()
@@ -206,8 +214,11 @@ namespace StructCalcAddin.Server
                         {
                             try
                             {
-                                return ScheduleCreator.CreateScheduleFromJson(
-                                    _uiApp?.ActiveUIDocument?.Document, msg.Payload, requestId);
+                                var doc = _uiApp?.ActiveUIDocument?.Document;
+                                if (doc == null)
+                                    return PipeEnvelope.Fail("CREATE_SCHEDULE: aucun document actif", requestId);
+
+                                return ScheduleCreator.CreateScheduleFromJson(doc, msg.Payload, requestId);
                             }
                             catch (Exception ex)
                             {
