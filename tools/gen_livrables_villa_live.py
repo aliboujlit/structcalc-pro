@@ -112,7 +112,7 @@ def main() -> int:
         step("ETAPE 2 — reactions reelles -> N ELU (1.35G+1.5Q)")
         from structcalc.integration.robot import results as rresults
         from structcalc.solver.loads import apply_combination
-        cases = _cases(rc)
+        cases = loads.list_cases(rc)
         by_name = {c["name"]: c["number"] for c in cases}
         dead_lc = next((lc for lc in study.load_cases.values()
                         if lc.kind == "dead"), None)
@@ -254,16 +254,6 @@ def main() -> int:
 def _new_project():
     from structcalc.core.model import Project
     return Project(sc_id="SC-VILLA-LIVE", name="Villa")
-
-
-def _cases(rc):
-    S = rc.structure
-    cs = S.LoadCases
-    out = []
-    for i in range(1, cs.Count + 1):
-        c = cs.Item(i)
-        out.append({"number": int(c.Number), "name": str(c.Name)})
-    return out
 
 
 if __name__ == "__main__":

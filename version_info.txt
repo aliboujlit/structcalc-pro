@@ -1,11 +1,11 @@
 ﻿# UTF-8
-# version_info.txt â€” Numero de version embarque dans le .exe (ressource PE).
-# MIROIR de structcalc/version.py : VERSION_INFO = (1, 3, 1, 0).
+# version_info.txt — Numero de version embarque dans le .exe (ressource PE).
+# MIROIR de structcalc/version.py : VERSION_INFO = (1, 5, 0, 0).
 # Toute bump de version se fait dans version.py PUIS ici.
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 3, 1, 0),
-    prodvers=(1, 3, 1, 0),
+    filevers=(1, 5, 0, 0),
+    prodvers=(1, 5, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -20,14 +20,13 @@ VSVersionInfo(
         '040904B0',
         [StringStruct('CompanyName', 'STRUCTCALC'),
         StringStruct('FileDescription', "STRUCTCALC PRO - Orchestrateur d'ingenierie structurelle"),
-        StringStruct('FileVersion', '1.3.1'),
+        StringStruct('FileVersion', '1.5.0'),
         StringStruct('InternalName', 'STRUCTCALC_PRO'),
         StringStruct('LegalCopyright', 'Copyright (C) STRUCTCALC 2026'),
         StringStruct('OriginalFilename', 'STRUCTCALC_PRO.exe'),
         StringStruct('ProductName', 'STRUCTCALC PRO'),
-        StringStruct('ProductVersion', '1.3.1')])
+        StringStruct('ProductVersion', '1.5.0')])
       ]),
     VarFileInfo([VarStruct('Translation', [1033, 1200])])
   ]
 )
-

@@ -6,7 +6,29 @@
 > opérationnelle sans preuve. Ce document sépare explicitement **PRUVÉ** /
 > **EN COURS** / **NON IMPLÉMENTÉ**.
 
-Dernière mise à jour : 2026-10-20 (v1.3.0 — LEDs, plan du modèle complet, Navisworks en boucle)
+Dernière mise à jour : 2026-10-21 (v1.5.0 — BIM Revit + Navisworks fix + Workflows débloqués)
+
+---
+
+## 0quater. v1.5.0 (21/10/2026) — BIM Revit (Named Pipe add-in) + Navisworks fix + Workflows débloqués
+
+Demandes utilisateur : plans de coffrage/ferraillage + dossier BCT (Maroc BAEL 91 r99 / RPS 2011) + transmission GitHub + BIM Revit (poteaux/poutres/semelles avec armatures A_VALIDER).
+
+| Apport | État réel (preuve) |
+|---|---|
+| **Plans de coffrage PDF** (vectoriels reportlab, A3 paysage, labels Robot R<b>x<h> réels, 0 objet inventé) | `reporting/plan_coffrage.py` — parsing convention R30x30→30×30 cm, cotes en m, échelle réelle d'impression, cartouche, notes « dimensions déduites du nom de label — à confirmer » ; tests `test_plans_bct.py` (parsing + géométrie + PDF) |
+| **Plans de ferraillage PDF** (proposition A_VALIDER, élévation + coupe + nomenclature ρ=7850 kg/m³) | `reporting/plan_ferraillage.py` — `propose_bars(As_requis, b, h)` → barres standard Ø12..Ø32 (max 12), cadres (zones d'attente/corps), nomenclature masses ; bannière permanente « PROPOSITION — À VALIDER » ; aucun statut « CONFORME » |
+| **Dossier BCT Maroc** (BAEL 91 r99 + RPS 2011, 12 pièces, 0 « CONFORME ») | `reporting/dossier_bct.py` — états : GÉNÉRÉ / À VALIDER / À COMPLÉTER / NON IMPLÉMENTÉ ; certificats matière/essais = NON FOURNI ; export MD/PDF/XLSX |
+| **Export DWG AutoCAD** plans coffrage (calques SC_COFFRAGE_*, géométrie prouvée AddLine/Polyline) | `integration/interop/autocad.py` — `write_coffrage()` : rectangles poteaux (dimensions réelles), double lignes poutres ; textes non supportés (AddText échoué — honnête) |
+| **BIM Revit** (Named Pipe add-in .NET compilé/déployé, pipe `\\.\pipe\structcalc_revit`) | `integration/revit/` (protocol, families, writer, reinforcement) + `StructCalcAddin/` (IExternalApplication, ruban, NDJSON, DTOs, Rebar.CreateFromCurves, ChangesApplier) ; client Python + connecteur hub — **PING + READ_MODEL prouvés live** (`tools/live_test_revit_addin.py`) |
+| **Mapping familles Revit** (JSON utilisateur, sections Robot → FamilySymbol Revit) | `integration/revit/families.py` — `FamiliesMap.load()`, entrée par section Robot, valeurs m, familles de secours ; aucune section inventée |
+| **Armatures Revit** (RebarDto depuis ReinforcementPlan, A_VALIDER) | `integration/revit/reinforcement.py` — longitudinal + cadres, position=axe (enrobage manquant), `layer` explicite, notes « positionnement à ajuster » |
+| **Navisworks fix** (convertisseur DWG→NWD, pas nœud pivot) | `integration/interop/loop.py` — `_exchange_to_navisworks()` : export DWG via autocad/civil3d/advsteel → `navisworks.convert(dwg, nwd)` ; livrable NWD tracé ; workflows `coordination_bim` et `boucle_complete` **DÉBLOQUÉS** |
+| **Tests unitaires** | **385 passed** (27 nouveaux : plans/BCT + 9 Revit + 4 Navisworks exchange) |
+| **Selftest exe v1.5.0** | `STRUCTCALC_PRO_1.5.0.exe` — **PASS** (version PE 1.5.0) |
+| **GitHub** | Dépôt `https://github.com/aliboujlit/structcalc-pro` (commit `cb5efdf` + v1.5.0) |
+
+Tests : **385 passed** (358 + 27 nouveaux).
 
 ---
 

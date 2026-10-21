@@ -463,7 +463,8 @@ def exchange_plan(plan: LoopPlan, project: Any,
       2. mission du RECEVEUR B (PROFILES) avec ses VRAIES méthodes :
          - Étude (Robot) : write_loads puis read_results ;
          - Plans/Conception : write_model EST la mission (qualifiée) ;
-         - Coordination (Navisworks) : refus motivé (chemin fichier requis).
+         - Coordination (Navisworks) : CONVERTISSEUR DE FICHIERS (DWG -> NWD),
+           PAS un nœud pivot. Exige un DWG source réel.
 
     `hub` : hub OPTIONNEL. Permet de réutiliser la session qui a ouvert le
     modèle source (ex. le .rtd ouvert par le connecteur Robot du hub —
@@ -485,6 +486,27 @@ def exchange_plan(plan: LoopPlan, project: Any,
 
     out: List[dict] = []
     for st in plan.steps:
+        # --- CAS SPÉCIAL : Navisworks comme cible (convertisseur fichiers) ---
+        if st.target == "navisworks":
+            # Navisworks n'est PAS un nœud pivot : il consomme un FICHIER DWG
+            # produit par le maillon source (autocad/civil3d/revit via DWG).
+            # On exporte le pivot vers un DWG temporaire, puis on convertit.
+            out.extend(_exchange_to_navisworks(
+                hub, st, project, connect))
+            continue
+
+        # --- CAS GÉNÉRAL : échange pivot standard (A.read -> B.write) ---
+        # Navisworks ne doit JAMAIS être source (pas de read_model pivot).
+        if st.source == "navisworks":
+            out.append({
+                "order": st.order, "source": st.source, "target": st.target,
+                "phase": st.phase, "action": "Transport modèle",
+                "success": False,
+                "message": ("Navisworks ne peut pas être source d'un échange pivot "
+                            "(READ_MODEL non supporté) — étape ignorée."),
+                "step_failed": "read"})
+            continue
+
         try:
             res = hub.exchange(st.source, st.target, project,
                                connect=connect)
@@ -512,4 +534,164 @@ def exchange_plan(plan: LoopPlan, project: Any,
                 "phase": f"Mission {MISSION_LABELS[PROFILES[st.target].mission]}",
                 "action": "mission", "success": False,
                 "message": f"ERREUR MISSION : {exc}", "step_failed": "mission"})
+    return out
+
+
+def _exchange_to_navisworks(hub, st, project: Any,
+                            connect: bool) -> List[dict]:
+    """
+    Échange spécial vers Navisworks : convertisseur de FICHIERS (DWG -> NWD).
+
+    1. Produit un DWG depuis le maillon source (autocad/civil3d/revit)
+       en écrivant le pivot dans un DWG temporaire.
+    2. Appelle navisworks.convert(dwg_path, nwd_path).
+    3. Signale le NWD comme livrable.
+    """
+    import tempfile
+    import os
+
+    out = []
+    order = st.order
+    source_name = st.source
+    target_name = "navisworks"
+    phase = st.phase
+
+    # 1. Choisir un exportateur DWG selon le maillon source
+    # Seuls les connecteurs capables d'écrire un VRAI DWG (COM AutoCAD vérifié)
+    dwg_exporters = ["autocad", "civil3d", "advsteel"]
+    exporter_name = None
+    if source_name in dwg_exporters:
+        exporter_name = source_name
+    elif "autocad" in hub.names:
+        exporter_name = "autocad"  # fallback vers AutoCAD (toujours dispo)
+    elif "civil3d" in hub.names:
+        exporter_name = "civil3d"
+    else:
+        out.append({
+            "order": order, "source": source_name, "target": target_name,
+            "phase": phase, "action": "Export DWG pour Navisworks",
+            "success": False,
+            "message": (f"Aucun exportateur DWG disponible pour {source_name} "
+                        f"(dispo : {', '.join(dwg_exporters)})"),
+            "step_failed": "write"})
+        return out
+
+    # 2. Fichier DWG temporaire
+    with tempfile.NamedTemporaryFile(suffix=".dwg", delete=False) as tmp:
+        dwg_path = tmp.name
+    nwd_path = os.path.splitext(dwg_path)[0] + ".nwd"
+
+    try:
+        # 2a. Connecter l'exportateur DWG
+        exporter = hub.get(exporter_name)
+        if connect and not exporter.connected:
+            try:
+                exporter.connect()
+            except Exception as exc:
+                out.append({
+                    "order": order, "source": source_name, "target": target_name,
+                    "phase": phase, "action": f"Connexion {LABELS[exporter_name]}",
+                    "success": False,
+                    "message": f"Connexion {exporter_name} échouée : {exc}",
+                    "step_failed": "connect"})
+                return out
+
+        # 2b. Écrire le pivot dans le DWG temporaire (write_model)
+        # Le connecteur AutoCAD/Civil3D/AdvSteel écrit dans son document actif.
+        # On utilise write_model avec out_path pour SaveAs.
+        # NOTE : L'API actuelle n'a pas out_path sur write_model.
+        # On écrit dans le document actif, puis SaveAs via l'exportateur.
+        # L'exportateur AutoCAD a _last_doc et save_document.
+        try:
+            rep_write = exporter.write_model(project)
+            if not rep_write.ok:
+                out.append({
+                    "order": order, "source": source_name, "target": target_name,
+                    "phase": phase, "action": f"Export DWG ({exporter_name})",
+                    "success": False,
+                    "message": f"write_model {exporter_name} refusé : {rep_write.message}",
+                    "step_failed": "write"})
+                return out
+            # SaveAs le document actif vers dwg_path
+            if hasattr(exporter, "_last_doc") and exporter._last_doc:
+                exporter.save_document(exporter._last_doc, dwg_path)
+            else:
+                out.append({
+                    "order": order, "source": source_name, "target": target_name,
+                    "phase": phase, "action": f"Export DWG ({exporter_name})",
+                    "success": False,
+                    "message": "Aucun document actif après write_model — SaveAs impossible",
+                    "step_failed": "write"})
+                return out
+        except Exception as exc:
+            out.append({
+                "order": order, "source": source_name, "target": target_name,
+                "phase": phase, "action": f"Export DWG ({exporter_name})",
+                "success": False,
+                "message": f"Export DWG échoué : {exc}",
+                "step_failed": "write"})
+            return out
+
+        # 3. Convertir DWG -> NWD via Navisworks
+        out.append({
+            "order": order, "source": source_name, "target": target_name,
+            "phase": phase, "action": f"Export DWG ({LABELS[exporter_name]})",
+            "success": True,
+            "message": f"Modèle exporté vers {os.path.basename(dwg_path)}",
+            "step_failed": ""})
+
+        nw = hub.get("navisworks")
+        try:
+            if connect and not nw.connected:
+                nw.connect()
+        except Exception as exc:
+            out.append({
+                "order": order, "source": source_name, "target": target_name,
+                "phase": phase, "action": "Connexion Navisworks",
+                "success": False,
+                "message": f"Connexion Navisworks échouée : {exc}",
+                "step_failed": "connect"})
+            return out
+
+        try:
+            rep_conv = nw.convert(dwg_path, nwd_path)
+            ok = rep_conv.ok
+            msg = rep_conv.message or rep_conv.status
+        except Exception as exc:
+            ok, msg = False, f"convert Navisworks échoué : {exc}"
+
+        out.append({
+            "order": order, "source": source_name, "target": target_name,
+            "phase": phase, "action": "Convert DWG -> NWD (Navisworks)",
+            "success": ok,
+            "message": (f"{os.path.basename(dwg_path)} -> "
+                        f"{os.path.basename(nwd_path)} : {msg}"),
+            "step_failed": "" if ok else "write"})
+
+        # 4. Mission coordination (livrable NWD)
+        if ok:
+            out.append({
+                "order": order, "source": target_name, "target": target_name,
+                "phase": f"Mission {MISSION_LABELS[PROFILES[target_name].mission]}",
+                "action": "Livrable coordination NWD",
+                "success": True,
+                "message": f"Fichier de coordination produit : {nwd_path}",
+                "step_failed": ""})
+        else:
+            out.append({
+                "order": order, "source": target_name, "target": target_name,
+                "phase": f"Mission {MISSION_LABELS[PROFILES[target_name].mission]}",
+                "action": "Livrable coordination NWD",
+                "success": False,
+                "message": f"Échec conversion : {msg}",
+                "step_failed": "mission"})
+
+    finally:
+        # Nettoyage DWG temporaire (on garde le NWD comme livrable)
+        try:
+            if os.path.exists(dwg_path):
+                os.remove(dwg_path)
+        except Exception:
+            pass
+
     return out

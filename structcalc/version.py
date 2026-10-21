@@ -17,11 +17,11 @@ APP_NAME = "STRUCTCALC PRO"
 APP_SUBTITLE = "Orchestrateur d'ingénierie structurelle"
 
 # Version publique (format semver)
-__version__ = "1.3.1"
+__version__ = "1.5.0"
 VERSION_STRING = __version__
 
 # Composants pour le numéro de version Windows (.exe) : (major, minor, patch, build)
-VERSION_INFO = (1, 3, 1, 0)
+VERSION_INFO = (1, 5, 0, 0)
 
 # Métadonnées pour version_info.txt / ressources PE
 VERSION_COMPANY = "STRUCTCALC"
